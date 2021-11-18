@@ -14,7 +14,7 @@ class database:
         self.connection.close()
 
     def select(self, table, order = "ASC", order_by = "id", what = "*", where = "1"):
-        query = f"SELECT {what} FROM {table} WHERE {where} ORDER BY {order_by} {order}"
+        query = f"SELECT {what} FROM {table} WHERE {where} ORDER BY {order_by} {order} "
         cursor = self.connection.execute(query)
         rows = list()
         for row in cursor:
@@ -36,5 +36,11 @@ class database:
     def insert_into_motor(self, isOn):
         query = f"INSERT INTO motor (is_on, date) VALUES(?, ?)"
         vals = (isOn, datetime.datetime.now())
+        self.connection.execute(query, vals)
+        self.connection.commit()
+
+    def insert_into_access(self, key, user, access_status):
+        query = f"INSERT INTO access (key, user, access_status, date) VALUES(?, ?, ?, ?)"
+        vals = (key, user, access_status, datetime.datetime.now())
         self.connection.execute(query, vals)
         self.connection.commit()
