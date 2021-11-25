@@ -46,10 +46,11 @@ class mqtt:
                     else:
                         db.insert_into_access(msg.payload.decode(), "Unknown", "Denied")
                         client.publish(self.pub_topic, "DENIED")  
+                db.close()
             elif (msg.topic == "SMARTHOME/light" and msg.payload.decode() != "Light: ONLINE"):
                 print(msg.payload.decode()) 
                 pass
-            db.close()
+            
 
         client.subscribe(self.sub_topic)
         client.on_message = on_message

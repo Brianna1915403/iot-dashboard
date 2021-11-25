@@ -2,9 +2,11 @@
 # Visit http://127.0.0.1:8050
 
 # Internal Imports
+from os import terminal_size
 from database import database
 from mqtt import mqtt as MQTT
-import arduinoSensor
+# import photoresistor
+# import arduinoSensor
 # External Imports
 import pandas as pd
 import plotly.express as px
@@ -16,6 +18,7 @@ from dash import dash_table
 from dash.dependencies import Input, Output
 from multiprocessing import Process
 from collections import OrderedDict
+import bluetooth, threading
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets = external_stylesheets)
@@ -106,6 +109,59 @@ def get_access_logs():
         ]
     )
 
+def get_bluetooth_devices(input_value):
+    nearby_devices = bluetooth.discover_devices(lookup_names=True, lookup_class=True)
+    print("Found {} devices".format(len(nearby_devices)))
+
+    threshold = input_value 
+    addresses = []
+    names = []
+    rssis = []
+
+    for addr, name, rssi in nearby_devices:
+        if (rssi > threshold): 
+            addresses.append(addr)
+            names.append(name)
+            rssis.append(rssi)      
+
+    data = OrderedDict(
+        [
+            ("Address", addresses),
+            ("Device Name", names),
+            ("RSSI", rssis),
+        ]
+    )
+
+    df = pd.DataFrame(OrderedDict([(name, col_data) for (name, col_data) in data.items()]))
+    return dash_table.DataTable(
+        data = df.to_dict('records'),
+        columns = [{'id': c, 'name': c} for c in df.columns],
+        page_size = 10,
+        style_cell_conditional = [
+            {'if': {'column_id': 'Date'}, 'width': '200px'},
+        ]
+    )
+
+def number_bluetooth_devices():  
+    nearby_devices = bluetooth.discover_devices(lookup_names=True, lookup_class=True)
+    return "Found {} devices".format(len(nearby_devices))
+
+# def get_photolights():
+#     db.open()
+#     rows = db.select("user", "DESC")
+#     light_rows = db.select("photoresistor")
+#     db.close()
+#     threshold_light = rows[0][4]
+#     print(threshold_light)
+#     curlight = light_rows[0][1]
+#     print(curlight)
+#     if curlight < threshold_light:
+#         photoresistor.openlight()
+#         print ("lit")
+#     else:
+#         photoresistor.closelight()
+#         print ("not lit")
+
 app.layout = html.Div(
     className = "dashboard-container",
     children = [
@@ -143,6 +199,25 @@ app.layout = html.Div(
                 className = "account",            
                 children = [
                     html.Div(className = "", id = "account-prefs", children = html.P("This is Account Prefs.")),
+                    # html.Div(className = "photoresistor-lights", id = "photoresistor", children = get_photolights()),
+                    html.Div(["Light Threshold: ", dcc.Input(id="light-threshold", value="500", type="number")]),
+                    html.Div(["Temperature Threshold: ", dcc.Input(id="temperature-threshold", value="20", type="number")])
+                ]
+            ),
+            dcc.Tab(
+                label = "Bluetooth",
+                className = "bluetooth",            
+                children = [
+                    html.Div(className = "", id = "bluetooth", children = html.P("Bluetooth")),
+                    html.Div(["Threshold: ", dcc.Input(id="input-threshold", value="100000", type="number")]),
+                    html.Div(className = "center-graphs", children = [
+                            html.Div(className = "graph-tables", children = [
+                                html.Div(id = "bluetoothlogs", children = [
+                                    html.H3(number_bluetooth_devices()),
+                                    get_bluetooth_devices(500)
+                                ])
+                            ]),
+                        ]),
                 ]
             ),
         ]),
@@ -183,20 +258,31 @@ def run_rfid_mqtt():
     MQTT("SMARTHOME/rfid", "SMARTHOME/buzzer").run()
 
 def run_light_mqtt():
-    MQTT("SMARTHOME/light", "SMARTHOME/light-threshold").run()
+    MQTT("SMARTHOME/light", "SMARTHOME/threshold").run()
 def run_sensor():
-    arduinoSensor.run()
+    # arduinoSensor.run()
+    pass
 
 if __name__ == '__main__':  
-    app_process = Process(target = run_server_debug)
+    try:
+        # thread.start_new_thread(run_server_debug)
+        # thread.start_new_thread(run_rfid_mqtt)
+        rfid_thread = threading.Thread(target=run_rfid_mqtt)
+        rfid_thread.start()
+        run_server_debug()
+        rfid_thread.join()
+        pass
+    except:
+        print("Error: Unable to Start Thread")
+    # app_process = Process(target = run_server_debug)
     # rfid_mqtt_process = Process(target = run_rfid_mqtt)
     # light_mqtt_process = Process(target = run_light_mqtt)
-    sensor_process = Process(target=run_sensor)
-    app_process.start()
-    sensor_process.start()
+    # sensor_process = Process(target=run_sensor)
+    # app_process.start()
+    # sensor_process.start()
     # rfid_mqtt_process.start()
     # light_mqtt_process.start()
-    app_process.join()
-    sensor_process.join()
+    # app_process.join()
+    # sensor_process.join()
     # rfid_mqtt_process.join()
     # light_mqtt_process.join()

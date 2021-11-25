@@ -4,10 +4,10 @@
 
 // --- MQTT SETUP START ---
 EspMQTTClient client(
-  "SWIphone",
-  "tgex2qw869crv",
-  "172.20.10.9",  // MQTT Broker server ip
-  "ESP8266" // Client name that uniquely identify your device       
+  "Please_Let_Me_See_My_Kids",
+  "sussybaka",
+  "192.168.1.105", //  "test.mosquitto.org",  // MQTT Broker server ip
+  "ESP8266-RFID" // Client name that uniquely identify your device       
 );
 
 String pub_topic = "SMARTHOME/rfid";
