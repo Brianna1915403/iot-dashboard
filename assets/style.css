@@ -27,5 +27,9 @@ aside.right-sidebar {
 }
 
 .card {
-    width: min-content;
+    display: inline;
+}
+
+.threashold {
+    width: 10em;
 }

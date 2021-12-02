@@ -41,6 +41,7 @@ class mqtt:
                 pass    
             elif(msg.topic == "SMARTHOME/DHT11" and msg.payload.decode() != "DHT11 Reader: ONLINE"):
                 if(msg.payload.decode() == "ASK"):
+                    # sensor.run()d
                     pass
 
     def subscribe(self, client: mqtt_client): 
