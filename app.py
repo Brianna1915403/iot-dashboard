@@ -5,8 +5,7 @@
 from os import terminal_size
 from database import database
 from mqtt import mqtt as MQTT
-# import photoresistor
-# import arduinoSensor
+
 # External Imports
 import pandas as pd
 import plotly.express as px
@@ -16,9 +15,8 @@ from dash import dcc
 from dash import html
 from dash import dash_table
 from dash.dependencies import Input, Output
-from multiprocessing import Process
+import multiprocessing
 from collections import OrderedDict
-import bluetooth, threading
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets = external_stylesheets)
@@ -254,7 +252,7 @@ app.layout = html.Div(
 def run_server_debug():
     app.run_server(debug = True)
 
-def run_rfid_mqtt():
+def run_mqtt():
     MQTT("SMARTHOME/rfid", "SMARTHOME/buzzer").run()
 
 def run_light_mqtt():
@@ -264,25 +262,14 @@ def run_sensor():
     pass
 
 if __name__ == '__main__':  
-    try:
-        # thread.start_new_thread(run_server_debug)
-        # thread.start_new_thread(run_rfid_mqtt)
-        rfid_thread = threading.Thread(target=run_rfid_mqtt)
-        rfid_thread.start()
-        run_server_debug()
-        rfid_thread.join()
-        pass
-    except:
-        print("Error: Unable to Start Thread")
-    # app_process = Process(target = run_server_debug)
-    # rfid_mqtt_process = Process(target = run_rfid_mqtt)
-    # light_mqtt_process = Process(target = run_light_mqtt)
-    # sensor_process = Process(target=run_sensor)
-    # app_process.start()
-    # sensor_process.start()
-    # rfid_mqtt_process.start()
-    # light_mqtt_process.start()
-    # app_process.join()
-    # sensor_process.join()
-    # rfid_mqtt_process.join()
-    # light_mqtt_process.join()
+    jobs = []
+    app_thread = multiprocessing.Process(target = run_server_debug)
+    mqtt_thread = multiprocessing.Process(target = run_mqtt)
+    jobs.append(app_thread)
+    jobs.append(mqtt_thread)
+
+    for j in jobs:
+        j.start()
+
+    for j in jobs:
+        j.join()
