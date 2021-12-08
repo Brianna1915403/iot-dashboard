@@ -18,6 +18,9 @@ password = "ImS19990619"
 
 # ser = serial.Serial('/dev/ttyUSB0', 9600)
 
+db = database("_data.db")
+
+
 def setup():
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
@@ -33,6 +36,7 @@ def offFan():
         GPIO.output(MotorEnable, GPIO.LOW)
 
 def sendEmail():
+    setup()
     message = MIMEMultipart("alternative")
     message["Subject"] = "Do you want to turn on the Fan?"
     message["From"] = sender_email
@@ -44,34 +48,40 @@ def sendEmail():
     receiveEmail()
 
 def receiveEmail():
- 
+
+    time.sleep(15)
     mail = imaplib.IMAP4_SSL('imap.gmail.com')
     mail.login(receiver_email, password)
     mail.select('inbox')
-    data = mail.search(None, '(FROM "winone0619@gmail.com")')
+    status, data = mail.search(None, '(FROM "winone0619@gmail.com")')
     ids = data[0] # data is a list.
     id_list = ids.split() # ids is a space separated string
     latest_email_id = id_list[-1]
-    data = mail.fetch(latest_email_id, "(RFC822)") # fetch the email body (RFC822)             for the given ID
-    bytes_data = data[0]
+    result, data = mail.fetch(latest_email_id, "(RFC822)") # fetch the email body (RFC822)             for the given ID
+    result, bytes_data = data[0]
     email_message = email.message_from_bytes(bytes_data)
     response = ""
-    time.sleep(10)
-    if email_message != "":
-        for part in email_message.walk():
-            if part.get_content_type() == 'text/plain' or part.get_content_type()=="text/html":
-                message = part.get_payload(decode=True)
-                response = message.decode()
-                if "YES" in response.upper():
-                    # turnOnFan()
-                    print("on")
-                elif "NO" in response.upper():
-                    # offFan()
-                    print("off")
-                break
+    if email_message == "":
+        return
+    for part in email_message.walk():
+        if part.get_content_type() == 'text/plain' or part.get_content_type()=="text/html":
+            message = part.get_payload(decode=True)
+            response = message.decode()
+            print(f"Response: {response}")
+            db.open()
+            if "YES" in response.upper():
+                # turnOnFan()
+                db.insert_into_motor(1)
+                print("on")
+            elif "NO" in response.upper():
+                # offFan()
+                db.insert_into_motor(0)
+                print("off")
+            db.close()
+            break
 
 
 
 
-setup()
-sendEmail()
+# setup()
+# sendEmail()

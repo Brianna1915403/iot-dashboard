@@ -20,6 +20,7 @@ from collections import OrderedDict
 import os
 import re
 
+bl_input_value = -100
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets = external_stylesheets)
 
@@ -127,28 +128,22 @@ def get_bluetooth_devices(input_value):
     f = open('output.txt', 'r')
     lines = f.readlines()
 
-    bl_devices = []
+    bl_devices = {}
     for line in lines:
         if "transmitterId:" in line:
-            dict = {}
             transmitter = re.findall(r"'(.*?)'", line)
-            dict['transmitterId'] = transmitter[0]
+            trans = transmitter[0]
         if "rssi:" in line:
             rssiNum = [int(s) for s in re.findall(r'-?\d+', line)]
-            dict['rssi'] = rssiNum[0]
-            bl_devices.append(dict)
-
-    bl_list = []
-    for i in range(len(bl_devices)):
-        if bl_devices[i] not in bl_devices[i + 1:]:
-            bl_list.append(bl_devices[i])
+            bl_devices[trans] = rssiNum[0]
 
     addresses = []
     rssis = []
-    for bl_device in bl_list:
-        if (input_value > bl_device['rssi']):
-            addresses.append(bl_device['transmitterId'])
-            rssis.append(bl_device['rssi'])    
+    key_list = list(bl_devices.keys())
+    for key in key_list:
+        if (input_value < bl_devices[key]):
+            addresses.append(key)
+            rssis.append(bl_devices[key])  
 
     data = OrderedDict(
         [
@@ -158,14 +153,15 @@ def get_bluetooth_devices(input_value):
     )
 
     df = pd.DataFrame(OrderedDict([(name, col_data) for (name, col_data) in data.items()]))
-    return dash_table.DataTable(
+    return html.Div(className = "bl", children = [html.Label(children = f"Bluetooth Devices: {len(addresses)}"),
+        dash_table.DataTable(
         data = df.to_dict('records'),
         columns = [{'id': c, 'name': c} for c in df.columns],
         page_size = 10,
         style_cell_conditional = [
             {'if': {'column_id': 'Date'}, 'width': '200px'},
         ]
-    )
+    )])
 
 # def number_bluetooth_devices():  
 #     nearby_devices = bluetooth.discover_devices(lookup_names=True, lookup_class=True)
@@ -210,7 +206,8 @@ app.layout = html.Div(
                                 ]),
                                 dcc.Tab(id = "bluethoot-table", label = "Bluetooth", children = [
                                     html.Br(),
-                                    get_bluetooth_devices(500)
+                                    html.Div(["Threshold: ", dcc.Input(id="bl-threshold", value="-100", type="number")]),
+                                    get_bluetooth_devices(bl_input_value)
                                 ])
                             ]),
                         ]),
@@ -245,22 +242,22 @@ app.layout = html.Div(
                         ]),
                     ])                    
                 ]
-            ),
-            dcc.Tab(
-                label = "Bluetooth",
-                className = "bluetooth",            
-                children = [
-                    html.Div(className = "", id = "bluetooth", children = html.P("Bluetooth")),
-                    html.Div(["Threshold: ", dcc.Input(id="input-threshold", value="100000", type="number")]),
-                    html.Div(className = "center-graphs", children = [
-                            html.Div(className = "graph-tables", children = [
-                                html.Div(id = "bluetoothlogs", children = [
-                                    get_bluetooth_devices(50)
-                                ])
-                            ]),
-                        ]),
-                ]
-            ),
+            )
+            # dcc.Tab(
+            #     label = "Bluetooth",
+            #     className = "bluetooth",            
+            #     children = [
+            #         html.Div(className = "", id = "bluetooth", children = html.P("Bluetooth")),
+            #         html.Div(["Threshold: ", dcc.Input(id="input-threshold", value="100000", type="number")]),
+            #         html.Div(className = "center-graphs", children = [
+            #                 html.Div(className = "graph-tables", children = [
+            #                     html.Div(id = "bluetoothlogs", children = [
+            #                         get_bluetooth_devices(50)
+            #                     ])
+            #                 ]),
+            #             ]),
+            #     ]
+            # ),
         ]),
         dcc.Interval(
             id='1-second-interval',
@@ -296,20 +293,19 @@ def run_server_debug():
     app.run_server(debug = True)
 
 def run_mqtt():
-    MQTT("SMARTHOME/rfid", "SMARTHOME/buzzer").run()
+    MQTT(["SMARTHOME/DHT11", "SMARTHOME/rfid"], ["SMARTHOME/DHT11_Threshold", "SMARTHOME/buzzer"]).run()
 
 def run_light_mqtt():
     MQTT("SMARTHOME/light", "SMARTHOME/threshold").run()
 def run_sensor():
-    # arduinoSensor.run()
-    pass
+    MQTT("SMARTHOME/DHT11", "SMARTHOME/DHT11_Threshold").run()
 
 if __name__ == '__main__':  
     jobs = []
     app_thread = multiprocessing.Process(target = run_server_debug)
-    # mqtt_thread = multiprocessing.Process(target = run_mqtt)
+    mqtt_thread = multiprocessing.Process(target = run_mqtt)
     jobs.append(app_thread)
-    # jobs.append(mqtt_thread)
+    jobs.append(mqtt_thread)
 
     for j in jobs:
         j.start()

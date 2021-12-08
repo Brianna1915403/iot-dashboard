@@ -1,4 +1,4 @@
-import random, time
+import random, time, sensor
 import paho.mqtt.client as mqtt_client
 from database import database
 
@@ -20,7 +20,7 @@ class mqtt:
                 db.open()
                 rfid_key = db.select("rfid_key", where = f"key = '{msg.payload.decode()}'")
                 if (not rfid_key):  
-                    db.insert_into_access(msg.payload.decode(), "Unknown", "Denied")
+                     db.insert_into_access(msg.payload.decode(), "Unknown", "Denied")
                     result = client.publish(self.pub_topics['rfid'], "DENIED")
                     status = result[0]
                     if status == 0:
@@ -40,12 +40,19 @@ class mqtt:
                 print(msg.payload.decode()) 
                 pass    
             elif(msg.topic == "SMARTHOME/DHT11" and msg.payload.decode() != "DHT11 Reader: ONLINE"):
-                if(msg.payload.decode() == "ASK"):
-                    # sensor.run()d
-                    pass
+                db.open()
+                answer = str(msg.payload.decode()).split(",");
+                print(answer[0])
+                if(answer[0] == "ASK"):
+                    db.insert_into_dht11(answer[1], answer[2]);
+                    sensor.sendEmail()
+                else:
+                    db.insert_into_dht11(answer[0], answer[1]);
+                db.close()
+
 
     def subscribe(self, client: mqtt_client): 
-        for sub_topic in self.sub_topics.values():
+        for sub_topic in self.sub_topics:
             client.subscribe(sub_topic)
 
     def run(self):
