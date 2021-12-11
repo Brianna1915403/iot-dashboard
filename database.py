@@ -21,6 +21,12 @@ class database:
             rows.append(row)
         return rows
 
+    def update_user(self, user, temp, light):
+        query = f"UPDATE user SET temperature = ?, light = ? WHERE id = ?"
+        vals = (temp, light, user)
+        self.connection.execute(query, vals)
+        self.connection.commit()
+
     def insert_into_dht11(self, temperature, humidity):
         query = f"INSERT INTO dht11 (temperature, humidity, date) VALUES(?, ?, ?)"
         vals = (temperature, humidity, datetime.datetime.now())

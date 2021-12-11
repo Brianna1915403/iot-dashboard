@@ -70,11 +70,11 @@ def receiveEmail():
             print(f"Response: {response}")
             db.open()
             if "YES" in response.upper():
-                # turnOnFan()
+                turnOnFan()
                 db.insert_into_motor(1)
                 print("on")
             elif "NO" in response.upper():
-                # offFan()
+                offFan()
                 db.insert_into_motor(0)
                 print("off")
             db.close()

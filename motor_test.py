@@ -24,12 +24,5 @@ def loop() :
 def destroy():
     GPIO.cleanup()
 
-
-if __name__ == '__main__':
-    setup()
-    loop()
-    # setup()
-    # try:
-    #     loop()
-    # except KeyboardInterrupt:
-    #     destroy()
+setup()
+loop()

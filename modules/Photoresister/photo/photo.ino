@@ -3,10 +3,10 @@
 
 // --- MQTT SETUP START ---
 EspMQTTClient client(
-  "SWIphone",
-  "tgex2qw869crv",
+  "VELVET_1431",
+  "IoTStuff",
   "test.mosquitto.org",  // MQTT Broker server ip
-  "ESP8266"         // Client name that uniquely identify your device
+  "ESP8266-Light"         // Client name that uniquely identify your device
 );
 String pub_topic = "SMARTHOME/light";
 String sub_topic = "SMARTHOME/light-threshold";
@@ -52,5 +52,7 @@ void checkLight(){
 // the loop routine runs over and over again forever:
 void loop() {
   client.loop();
-  checkLight();
+  if(client.isConnected()) {
+    checkLight();    
+  }
 }

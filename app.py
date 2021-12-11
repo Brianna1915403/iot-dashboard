@@ -3,8 +3,11 @@
 
 # Internal Imports
 from os import terminal_size
+
+from dash.development.base_component import Component
 from database import database
 from mqtt import mqtt as MQTT
+import photoresistor
 
 # External Imports
 import pandas as pd
@@ -14,7 +17,7 @@ import dash
 from dash import dcc
 from dash import html
 from dash import dash_table
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import multiprocessing
 from collections import OrderedDict
 import os
@@ -33,7 +36,7 @@ def get_temperature():
     return daq.Gauge(
         showCurrentValue = True,
         units = 'C',
-        value = -17,
+        value = rows[0][1],
         label = 'Temperature',
         max = 40,
         min = -20
@@ -46,31 +49,25 @@ def get_humidity():
     return daq.Gauge(
         showCurrentValue = True,
         units = '%',
-        value = 30,
+        value = rows[0][2],
         label = 'Humidity',
         max = 100,
         min = 0
     )
 
-def get_light():
-    db.open()
-    rows = db.select("led", "DESC")
-    db.close()
+def get_light(isOn = False):
     return daq.PowerButton(
         id = 'light-btn',
-        on = True,
+        on = isOn,
         label = 'Light',
         labelPosition = 'bottom'
     )
 
-def get_fan():
-    db.open()
-    rows = db.select("motor", "DESC")
-    db.close()
+def get_mode():
     return daq.PowerButton(
         id = 'motor-btn',
-        on = False,
-        label = 'Motor',
+        on = True,
+        label = 'Mode',
         labelPosition = 'bottom'
     )
 
@@ -78,17 +75,16 @@ def get_users():
     db.open()
     rows = db.select("user")
     db.close()
+    users = []
+    for row in rows:
+        users.append({'label': row[1], 'value': row[0]})
     return dcc.Dropdown(
-        options=[
-            {'label': 'New York City', 'value': 'NYC'},
-            {'label': 'Montréal', 'value': 'MTL'},
-            {'label': 'San Francisco', 'value': 'SF'}
-        ],
-        value='MTL'
+        id='user-dropdown',
+        options=users,
+        value=None
     )
 
 def get_access_logs():
-
     dates = []
     rfids = []
     users = []
@@ -124,7 +120,6 @@ def get_access_logs():
     )
 
 def get_bluetooth_devices(input_value):
-    os.system('npm run start 2>&1| tee output.txt & sleep 5 ; kill $!')
     f = open('output.txt', 'r')
     lines = f.readlines()
 
@@ -198,23 +193,26 @@ app.layout = html.Div(
                             html.Div(className = "hum-gauge", id = "humidity-gauge", children = get_humidity()),
                         ]),
                         html.Div(className = "center-graphs", children = [
-                            html.P("Lorem ipsum dolor sit, amet consectetur adipisicing elit. Aut voluptatum, voluptate reprehenderit amet dolorum, hic dolore praesentium temporibus sequi quisquam soluta magnam dolorem iure ipsum laboriosam iusto optio doloremque asperiores eum officia ratione molestiae aspernatur beatae fugit. Fugiat adipisci nesciunt non corporis dicta, eligendi nulla, iste incidunt enim earum necessitatibus."),
+                            html.P(id = 'formatting-text', children = "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Aut voluptatum, voluptate reprehenderit amet dolorum, hic dolore praesentium temporibus sequi quisquam soluta magnam dolorem iure ipsum laboriosam iusto optio doloremque asperiores eum officia ratione molestiae aspernatur beatae fugit. Fugiat adipisci nesciunt non corporis dicta, eligendi nulla, iste incidunt enim earum necessitatibus."),
                             dcc.Tabs(className = "graph-tables", children = [
                                 dcc.Tab(id = "access-logs", label = "Access Logs", children = [
                                     html.Br(),
                                     get_access_logs()
                                 ]),
-                                dcc.Tab(id = "bluethoot-table", label = "Bluetooth", children = [
+                                dcc.Tab(id = "bluetooth-table", label = "Bluetooth", children = [
                                     html.Br(),
-                                    html.Div(["Threshold: ", dcc.Input(id="bl-threshold", value="-100", type="number")]),
-                                    get_bluetooth_devices(bl_input_value)
+                                    html.Div(["Threshold: ", dcc.Input(id="bl-threshold", value="-100", type="number", debounce=True)]),
+                                    html.Div(id = 'ble', children = [
+                                        get_bluetooth_devices(bl_input_value)
+                                    ])                                    
                                 ])
                             ]),
                         ]),
                         html.Aside(className = "right-sidebar", children = [
                             html.Div(className = "btns", children = [
                                 html.Div(className = "btn", id = "light-btn-card", children = get_light()),
-                                html.Div(className = "btn", id = "fan-btn-card", children = get_fan()),
+                                html.Br(),
+                                html.Div(className = "btn", id = "mode-btn-card", children = get_mode()),
                             ])
                         ]),
                     ])                                      
@@ -224,44 +222,31 @@ app.layout = html.Div(
                 label = "Account",
                 className = "account",            
                 children = [
-                    html.Div(id = '', className = "", children = [
+                    html.Div(id = '', className = "account-container", children = [
                         html.Br(),
                         html.Label('Users: '),
-                        get_users(),
-                        
+                        get_users(),                        
                         html.Br(),
                         html.Div(className = 'card', children = [
                             html.Div(children = [
                                 html.Label('Temperature Threshold:'),
-                                dcc.Input(id='temperature-threshold', className = 'threashold', type='number', min = -20, max = 40, step = 1, placeholder="0 - 30"),
+                                dcc.Input(id='temperature-threshold', className = 'threashold', min = '-20', max = '40', placeholder="-20 - 40"),
                             ]),
                             html.Div(children = [
                                 html.Label('Light Threshold:'),
                                 dcc.Input(id="light-threshold", className = 'threashold', type='number', min = 0, max = 10000, step = 1, placeholder="0 - 10000")
                             ]),
                         ]),
+                        html.Br(),
+                        html.Button(id='update-btn', children='Update'),
+                        html.Div(id='empty-div', children=[])
                     ])                    
                 ]
             )
-            # dcc.Tab(
-            #     label = "Bluetooth",
-            #     className = "bluetooth",            
-            #     children = [
-            #         html.Div(className = "", id = "bluetooth", children = html.P("Bluetooth")),
-            #         html.Div(["Threshold: ", dcc.Input(id="input-threshold", value="100000", type="number")]),
-            #         html.Div(className = "center-graphs", children = [
-            #                 html.Div(className = "graph-tables", children = [
-            #                     html.Div(id = "bluetoothlogs", children = [
-            #                         get_bluetooth_devices(50)
-            #                     ])
-            #                 ]),
-            #             ]),
-            #     ]
-            # ),
         ]),
         dcc.Interval(
-            id='1-second-interval',
-            interval=1000, 
+            id='10-second-interval',
+            interval=10000, 
             n_intervals=0
         )
     ]
@@ -269,36 +254,58 @@ app.layout = html.Div(
 
 # --- Updates Start ---
 
-# @app.callback(Output('humidity', 'children'), [Input('1-sec-interval', 'n_intervals')])
-# def update_humidity():
-#     return get_humidity()
+@app.callback(Output('humidity-gauge', 'children'), [Input('10-second-interval', 'n_intervals')])
+def update_humidity(val):
+    return get_humidity()
 
-# @app.callback(Output('temperature', 'children'), [Input('1-sec-interval', 'n_intervals')])
-# def update_temperature():
-#     return get_temperature()
+@app.callback(Output('temperature-gauge', 'children'), [Input('10-second-interval', 'n_intervals')])
+def update_temperature(val):
+    return get_temperature()
 
-# @app.callback(Output('light', 'children'), [Input('light-btn', 'on')])
-# def update_light(on):
-#     # print(f"Button has been clicked {on} times")
-#     return get_light()
+@app.callback(Output('light-btn-card', 'children'), [Input('light-btn', 'on')])
+def update_light(on):
+    photoresistor.solo_light(on)
+    return get_light(on)
 
-# @app.callback(Output('motor', 'children'), [Input('motor-btn', 'n_clicks')])
-# def update_motor(n_clicks):
-#     print(f"Button has been clicked {n_clicks} times")
-#     return get_motor()
+@app.callback(Output('empty-div', 'children'), [Input('update-btn', 'n_clicks')], [State('user-dropdown', 'value'), State('temperature-threshold', 'value'), State('light-threshold', 'value')])
+def update_user(clicks, user, temp, light):
+    if (clicks):
+        db.open()
+        db.update_user(user, temp, light)
+        db.close()
+        
+@app.callback(Output('ble', 'children'), [Input('bl-threshold', 'value')])
+def update_ble(value):
+    return get_bluetooth_devices(int(value))
 
+@app.callback(Output('temperature-threshold', 'value'), [Input('user-dropdown', 'value')])
+def update_temp(value):
+    if (not value):
+        return ""
+    else:
+        db.open()
+        rows = db.select("user")
+        db.close()
+        return rows[value - 1][3]
+
+@app.callback(Output('light-threshold', 'value'), [Input('user-dropdown', 'value')])
+def update_temp(value):
+    if (not value):
+        return ""
+    else:
+        db.open()
+        rows = db.select("user")
+        db.close()
+        return rows[value - 1][4]
 # --- Updates End ---
 
 def run_server_debug():
     app.run_server(debug = True)
 
 def run_mqtt():
-    MQTT(["SMARTHOME/DHT11", "SMARTHOME/rfid"], ["SMARTHOME/DHT11_Threshold", "SMARTHOME/buzzer"]).run()
-
-def run_light_mqtt():
-    MQTT("SMARTHOME/light", "SMARTHOME/threshold").run()
-def run_sensor():
-    MQTT("SMARTHOME/DHT11", "SMARTHOME/DHT11_Threshold").run()
+    sub_topics = {'dht11' : "SMARTHOME/DHT11", 'rfid' : "SMARTHOME/rfid", 'light' : "SMARTHOME/light"}
+    pub_topics = {'dht11' : "SMARTHOME/DHT11_Threshold", 'rfid' : "SMARTHOME/buzzer", 'light' : "SMARTHOME/light-threshold"}
+    MQTT(sub_topics, pub_topics).run()
 
 if __name__ == '__main__':  
     jobs = []

@@ -4,9 +4,9 @@
 
 // --- MQTT SETUP START ---
 EspMQTTClient client(
-  "Please_Let_Me_See_My_Kids",
-  "sussybaka",
-  "192.168.1.105", //  "test.mosquitto.org",  // MQTT Broker server ip
+  "VELVET_1431",
+  "IoTStuff",
+  "test.mosquitto.org",  // MQTT Broker server ip
   "ESP8266-RFID" // Client name that uniquely identify your device       
 );
 
@@ -84,5 +84,7 @@ void onConnectionEstablished()
 void loop()
 {
   client.loop();
-  checkRFID();
+  if (client.isConnected()) {
+    checkRFID();
+  }
 }

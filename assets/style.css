@@ -27,9 +27,13 @@ aside.right-sidebar {
 }
 
 .card {
-    display: inline;
+    display: inline;    
 }
 
 .threashold {
     width: 10em;
+}
+
+#formatting-text {
+    color: #FFF;
 }
