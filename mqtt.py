@@ -51,10 +51,12 @@ class mqtt:
             if(msg.topic == "SMARTHOME/DHT11" and msg.payload.decode() != "DHT11 Reader: ONLINE"):
                 db.open()
                 answer = str(msg.payload.decode()).split(",")
+                #if the temperature passes the threshold, it will send message with ASK
                 if(answer[0] == "ASK"):
                     db.insert_into_dht11(answer[1], answer[2])
                     sensor.sendEmail()
                 else:
+                    #Otherwise, insert data in database
                     db.insert_into_dht11(answer[0], answer[1])
                 db.close()
 

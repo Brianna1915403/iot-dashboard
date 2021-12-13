@@ -12,15 +12,15 @@ MotorA= 20
 MotorB= 16
 MotorEnable = 21
 smtp_server = "smtp.gmail.com"
-sender_email = "winone0619@gmail.com"
+sender_email = "winone0619@gmail.com" 
 receiver_email = "winone0619@gmail.com"
-password = "ImS19990619"
+password = ""
 
 # ser = serial.Serial('/dev/ttyUSB0', 9600)
 
 db = database("_data.db")
 
-
+#Set up for the DC motor 
 def setup():
     GPIO.setwarnings(False)
     GPIO.setmode(GPIO.BCM)
@@ -28,13 +28,16 @@ def setup():
     GPIO.setup(MotorB, GPIO.OUT)
     GPIO.setup(MotorEnable, GPIO.OUT)
 
+# Turn the DC motor
 def turnOnFan() :
     GPIO.output(MotorA, GPIO.HIGH)
     GPIO.output(MotorB, GPIO.LOW)
     GPIO.output(MotorEnable, GPIO.HIGH)
+# Turn off the DC motor
 def offFan():
         GPIO.output(MotorEnable, GPIO.LOW)
 
+#The email will be sent by itself
 def sendEmail():
     setup()
     message = MIMEMultipart("alternative")
@@ -47,6 +50,9 @@ def sendEmail():
         server.sendmail(sender_email, receiver_email, message.as_string())
     receiveEmail()
 
+#Give 15 seconds to the user to reply the request
+#If the user sends yes, it will turn motor
+#Otherwise, nothing happens
 def receiveEmail():
 
     time.sleep(15)
@@ -83,5 +89,5 @@ def receiveEmail():
 
 
 
-# setup()
-# sendEmail()
+setup()
+

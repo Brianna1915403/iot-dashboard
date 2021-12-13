@@ -2,7 +2,13 @@
 #include "EspMQTTClient.h"
 
 #define DHTPIN 2
-#define DHTTYPE DHT11 
+#define DHTTYPE DHT11
+
+/*
+Node MCU will detect the temperature and humidity throught DHT11 
+if the temperature surpasses the threshold temperature, it will send the message 'ASK' with the data.Otherwise, it will send only the data 
+*/
+
 // --- MQTT SETUP START ---
 EspMQTTClient client(
   "VELVET_1431",// "SWIphone", //  "Merry Xmas",
@@ -41,8 +47,7 @@ void onConnectionEstablished()
 }
 
 void checkDHT11() {
-  // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+  // Reading temperature or humidity
   float h = dht.readHumidity();
   // Read temperature as Celsius (the default)
   float t = dht.readTemperature();
