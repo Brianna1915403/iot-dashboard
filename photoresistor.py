@@ -14,18 +14,20 @@ GPIO.setup(LED, GPIO.OUT)
 GPIO.setup(LED2, GPIO.OUT)
 GPIO.setup(LED3, GPIO.OUT)
 
-
+# Open both LEDs with GPIO output
 def openlight():
     GPIO.output(LED, GPIO.HIGH)
     GPIO.output(LED2, GPIO.HIGH)
-    print("lit")
 
+# Open LED with GPIO output
 def solo_light(isOn):
     GPIO.output(LED3, GPIO.HIGH if isOn else GPIO.LOW)
 
+# Close LED with GPIO output
 def closesololight():
     GPIO.output(LED3, GPIO.LOW)
 
+# Close both LEDs with GPIO output
 def closelight():
     GPIO.output(LED, GPIO.LOW)
     GPIO.output(LED2, GPIO.LOW)

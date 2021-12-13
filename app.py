@@ -119,10 +119,14 @@ def get_access_logs():
         ]
     )
 
+# Get bluetooth devices around the area using the barnowl github repository.
 def get_bluetooth_devices(input_value):
+    # Running the script to get the bl devices and saving to a txt file.
+    os.system('npm run start 2>&1| tee output.txt & sleep 5 ; kill $!')
     f = open('output.txt', 'r')
     lines = f.readlines()
 
+    # Add to a dictionary to filter out duplicate values.
     bl_devices = {}
     for line in lines:
         if "transmitterId:" in line:
@@ -134,12 +138,14 @@ def get_bluetooth_devices(input_value):
 
     addresses = []
     rssis = []
+    # Filter the list depending on the threshold.
     key_list = list(bl_devices.keys())
     for key in key_list:
         if (input_value < bl_devices[key]):
             addresses.append(key)
             rssis.append(bl_devices[key])  
 
+    # Adding a table with the list of bluetooth devices in to the dashboard.
     data = OrderedDict(
         [
             ("Address", addresses),
@@ -158,26 +164,7 @@ def get_bluetooth_devices(input_value):
         ]
     )])
 
-# def number_bluetooth_devices():  
-#     nearby_devices = bluetooth.discover_devices(lookup_names=True, lookup_class=True)
-#     return "Found {} devices".format(len(nearby_devices))
-
-# def get_photolights():
-#     db.open()
-#     rows = db.select("user", "DESC")
-#     light_rows = db.select("photoresistor")
-#     db.close()
-#     threshold_light = rows[0][4]
-#     print(threshold_light)
-#     curlight = light_rows[0][1]
-#     print(curlight)
-#     if curlight < threshold_light:
-#         photoresistor.openlight()
-#         print ("lit")
-#     else:
-#         photoresistor.closelight()
-#         print ("not lit")
-
+# Layout of the dashboard with the IoT elements.
 app.layout = html.Div(
     className = "dashboard-container",
     children = [

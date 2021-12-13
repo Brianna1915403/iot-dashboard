@@ -46,7 +46,6 @@ class email:
                 mail_ids += block.split()
             
             if(mail_ids):
-                print("Orphans in my basement")
                 latest_email = mail_ids[-1]
                 status, data = mail.fetch(latest_email, '(RFC822)')
 
