@@ -30,6 +30,9 @@ app = dash.Dash(__name__, external_stylesheets = external_stylesheets)
 db = database("_data.db")
 
 def get_temperature():
+    """
+    Returns a Gauge with the latest temperature value from the database.
+    """
     db.open()
     rows = db.select("dht11", "DESC")
     db.close()
@@ -43,6 +46,9 @@ def get_temperature():
     )
 
 def get_humidity():
+    """
+    Returns a Gauge with the latest humidity value from the database.
+    """
     db.open()
     rows = db.select("dht11", "DESC")
     db.close()
@@ -56,6 +62,9 @@ def get_humidity():
     )
 
 def get_light(isOn = False):
+    """
+    Returns a PowerButton depicting the current status of the dashboard controlled LED.
+    """
     return daq.PowerButton(
         id = 'light-btn',
         on = isOn,
@@ -64,6 +73,10 @@ def get_light(isOn = False):
     )
 
 def get_mode():
+    """
+    Returns a PowerButton depicting the current status of the dashboard theme.
+    (Not implemented)
+    """
     return daq.PowerButton(
         id = 'motor-btn',
         on = True,
@@ -72,6 +85,9 @@ def get_mode():
     )
 
 def get_users():
+    """
+    Returns a dropdown of all users in the database.
+    """
     db.open()
     rows = db.select("user")
     db.close()
@@ -79,12 +95,15 @@ def get_users():
     for row in rows:
         users.append({'label': row[1], 'value': row[0]})
     return dcc.Dropdown(
-        id='user-dropdown',
-        options=users,
-        value=None
+        id = 'user-dropdown',
+        options = users,
+        value = None
     )
 
 def get_access_logs():
+    """
+    Returns a table of access attempts from the database.
+    """
     dates = []
     rfids = []
     users = []
@@ -170,7 +189,7 @@ app.layout = html.Div(
     children = [
         html.H1(children = 'SMART Home - Dashboard', id = "title"),
         dcc.Tabs([
-            dcc.Tab(
+            dcc.Tab( 
                 label = "Dashboard",
                 className = "dashboard-tab",            
                 children = [
@@ -205,7 +224,7 @@ app.layout = html.Div(
                     ])                                      
                 ]
             ),
-            dcc.Tab(
+            dcc.Tab( 
                 label = "Account",
                 className = "account",            
                 children = [
@@ -284,17 +303,23 @@ def update_temp(value):
         rows = db.select("user")
         db.close()
         return rows[value - 1][4]
+
 # --- Updates End ---
 
 def run_server_debug():
     app.run_server(debug = True)
 
 def run_mqtt():
+    """
+    Starts the MQTT pub/sub 'server'.
+    """
     sub_topics = {'dht11' : "SMARTHOME/DHT11", 'rfid' : "SMARTHOME/rfid", 'light' : "SMARTHOME/light"}
     pub_topics = {'dht11' : "SMARTHOME/DHT11_Threshold", 'rfid' : "SMARTHOME/buzzer", 'light' : "SMARTHOME/light-threshold"}
     MQTT(sub_topics, pub_topics).run()
 
 if __name__ == '__main__':  
+    # Start of multithreading so we can run both the dashboard web server
+    #  and MQTT client within the same app.
     jobs = []
     app_thread = multiprocessing.Process(target = run_server_debug)
     mqtt_thread = multiprocessing.Process(target = run_mqtt)
